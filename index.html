@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jean-Claude Biguine — Complaint Management</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* ── DAY THEME (default) ── */
+:root {
+  --bg:#f5f0e8; --surface:#ffffff; --surface2:#f0ebe0; --surface3:#e8e0d0;
+  --border:#e0d5c5; --border2:#ccc0aa;
+  --accent:#a07040; --accent2:#c9903a; --accent-dim:rgba(160,112,64,0.10);
+  --text:#2a1f10; --text2:#4a3820; --muted:#8a7a6a;
+  --open:#c94040; --open-bg:rgba(201,64,64,0.10);
+  --pending:#c07820; --pending-bg:rgba(192,120,32,0.10);
+  --resolved:#3a8a60; --resolved-bg:rgba(58,138,96,0.10);
+  --radius:10px; --radius-lg:14px;
+  --shadow:0 4px 24px rgba(0,0,0,0.12);
+}
+/* ── NIGHT THEME ── */
+body.night-theme {
+  --bg:#0f0f13; --surface:#17171f; --surface2:#1e1e28; --surface3:#242430;
+  --border:#2a2a38; --border2:#33334a;
+  --accent:#c9a96e; --accent2:#e8c88a; --accent-dim:rgba(201,169,110,0.12);
+  --text:#f0efe8; --text2:#c8c7c0; --muted:#7a7a8c;
+  --open:#e05c5c; --open-bg:rgba(224,92,92,0.12);
+  --pending:#e0a85c; --pending-bg:rgba(224,168,92,0.12);
+  --resolved:#5cb88a; --resolved-bg:rgba(92,184,138,0.12);
+  --shadow:0 4px 24px rgba(0,0,0,0.35);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform .3s;}
+.logo{padding:24px 22px 22px;border-bottom:1px solid var(--border);}
+.logo-brand{font-family:'Playfair Display',serif;font-size:19px;color:var(--accent);letter-spacing:.3px;}
+.logo-sub{font-size:10.5px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.nav-section{font-size:9.5px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;padding:18px 22px 7px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 22px;font-size:13.5px;color:var(--muted);cursor:pointer;transition:all .18s;border-left:3px solid transparent;user-select:none;}
+.nav-item:hover{color:var(--text2);background:var(--surface2);}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-dim);font-weight:600;}
+.nav-icon{width:20px;text-align:center;font-size:15px;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--open);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.sidebar-footer{margin-top:auto;padding:18px 22px;border-top:1px solid var(--border);}
+.user-row{display:flex;align-items:center;gap:10px;}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#7a5028);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+.user-name{font-size:13px;font-weight:500;}
+.user-role{font-size:11px;color:var(--muted);}
+
+/* ── MAIN ── */
+.main{margin-left:230px;min-height:100vh;display:flex;flex-direction:column;}
+.topbar{padding:18px 30px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-left .page-title{font-family:'Playfair Display',serif;font-size:21px;}
+.topbar-left .page-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.topbar-right{display:flex;gap:10px;align-items:center;}
+.loading-bar{height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));position:fixed;top:0;left:0;z-index:999;transition:width .4s;width:0;}
+.content{padding:26px 30px;flex:1;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all .18s;}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#a87d4a);color:#fff;}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--accent2);}
+.btn-danger{background:var(--open-bg);color:var(--open);border:1px solid rgba(224,92,92,.3);}
+.btn-danger:hover{background:rgba(224,92,92,.2);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-xs{padding:4px 9px;font-size:11px;}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden;transition:transform .2s;}
+.stat-card:hover{transform:translateY(-2px);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-total::before{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+.stat-open::before{background:var(--open);}
+.stat-pending::before{background:var(--pending);}
+.stat-resolved::before{background:var(--resolved);}
+.stat-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}
+.stat-value{font-size:34px;font-weight:700;font-family:'Playfair Display',serif;margin:8px 0 4px;line-height:1;}
+.stat-total .stat-value{color:var(--accent);}
+.stat-open .stat-value{color:var(--open);}
+.stat-pending .stat-value{color:var(--pending);}
+.stat-resolved .stat-value{color:var(--resolved);}
+.stat-change{font-size:12px;color:var(--muted);}
+
+/* ── CHARTS ── */
+.charts-row{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:24px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.bar-label{font-size:12px;color:var(--muted);width:100px;text-align:right;flex-shrink:0;}
+.bar-track{flex:1;background:var(--surface2);border-radius:3px;height:7px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease;}
+.bar-val{font-size:12px;color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
+.donut-wrap{display:flex;align-items:center;gap:22px;}
+.donut{width:100px;height:100px;border-radius:50%;flex-shrink:0;position:relative;}
+.donut::after{content:'';position:absolute;inset:20px;background:var(--surface);border-radius:50%;}
+.legend{display:flex;flex-direction:column;gap:9px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* ── TABLE ── */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.table-title{font-size:13.5px;font-weight:600;}
+.table-meta{font-size:12px;color:var(--muted);}
+.table-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead{background:var(--surface2);}
+th{padding:10px 14px;text-align:left;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;white-space:nowrap;}
+td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr{transition:background .15s;}
+tbody tr:hover td{background:var(--accent-dim);}
+.td-muted{color:var(--muted);font-size:12px;}
+.td-id{color:var(--muted);font-size:11.5px;font-family:monospace;}
+.td-client{font-weight:600;}
+.td-summary{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:12px;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.badge-open{background:var(--open-bg);color:var(--open);}
+.badge-pending{background:var(--pending-bg);color:var(--pending);}
+.badge-resolved{background:var(--resolved-bg);color:var(--resolved);}
+.cat-tag{background:var(--accent-dim);color:var(--accent2);padding:3px 9px;border-radius:5px;font-size:11px;font-weight:500;}
+.brand-tag{background:var(--surface2);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid var(--border);}
+
+/* ── FILTERS ── */
+.filters-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;}
+.filter-group{display:flex;align-items:center;gap:7px;}
+.filter-label{font-size:11px;color:var(--muted);white-space:nowrap;}
+.filter-control{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:7px;font-size:12.5px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;}
+.filter-control:focus{border-color:var(--accent);}
+.filter-search{width:200px;}
+.filter-divider{width:1px;height:24px;background:var(--border);flex-shrink:0;}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+.form-label span{color:var(--open);}
+.form-control{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;width:100%;}
+.form-control:focus{border-color:var(--accent);}
+.form-control::placeholder{color:var(--muted);}
+textarea.form-control{resize:vertical;min-height:80px;line-height:1.5;}
+.form-error{font-size:11px;color:var(--open);margin-top:2px;}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .25s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;width:620px;max-width:96vw;max-height:92vh;overflow-y:auto;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.6);transform:translateY(20px);transition:transform .25s;}
+.overlay.open .modal{transform:translateY(0);}
+.modal-title{font-family:'Playfair Display',serif;font-size:21px;color:var(--accent);margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:26px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;padding-top:18px;border-top:1px solid var(--border);}
+
+/* ── FOLLOW-UP PANEL ── */
+.followup-layout{display:grid;grid-template-columns:340px 1fr;gap:18px;}
+.followup-list-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;max-height:78vh;display:flex;flex-direction:column;}
+.followup-list-header{padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;}
+.followup-list-scroll{overflow-y:auto;flex:1;}
+.fu-item{padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.fu-item:hover{background:var(--surface2);}
+.fu-item.selected{background:var(--accent-dim);border-left:3px solid var(--accent);}
+.fu-item-id{font-size:11px;color:var(--muted);font-family:monospace;}
+.fu-item-client{font-size:13.5px;font-weight:600;margin:2px 0;}
+.fu-item-meta{font-size:11.5px;color:var(--muted);}
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;overflow-y:auto;max-height:78vh;}
+.detail-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.detail-id{font-family:monospace;font-size:12px;color:var(--muted);}
+.detail-client{font-family:'Playfair Display',serif;font-size:20px;color:var(--accent);margin:3px 0;}
+.detail-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.detail-meta-item .dm-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.detail-meta-item .dm-value{font-size:13px;}
+.summary-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:18px;}
+.timeline{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;}
+.tl-item{display:flex;gap:12px;}
+.tl-spine{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);margin-top:3px;}
+.tl-line{width:1px;flex:1;background:var(--border);margin-top:4px;}
+.tl-body{flex:1;padding-bottom:2px;}
+.tl-meta{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.tl-text{font-size:13px;background:var(--surface2);border:1px solid var(--border);padding:9px 12px;border-radius:8px;line-height:1.5;white-space:pre-wrap;}
+.remark-form{border-top:1px solid var(--border);padding-top:18px;}
+.remark-form-title{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:12px;}
+
+/* ── UPLOAD ── */
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-dim);}
+.upload-icon{font-size:36px;margin-bottom:10px;}
+.upload-title{font-size:15px;font-weight:600;margin-bottom:6px;}
+.upload-sub{font-size:12px;color:var(--muted);}
+.upload-preview{margin-top:20px;}
+.preview-table-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:auto;max-height:300px;}
+.preview-table-wrap table th{background:var(--surface3);}
+.field-map{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0;}
+
+/* ── ADMIN ── */
+.admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.admin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;}
+.admin-card.wide{grid-column:span 2;}
+.admin-card-title{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+.tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;min-height:30px;}
+.tag-item{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:20px;font-size:12px;}
+.tag-rm{color:var(--muted);cursor:pointer;font-size:15px;line-height:1;transition:color .15s;}
+.tag-rm:hover{color:var(--open);}
+.tag-add-row{display:flex;gap:8px;}
+.tag-add-row input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12.5px;font-family:'DM Sans',sans-serif;outline:none;}
+.tag-add-row input:focus{border-color:var(--accent);}
+
+/* ── NOTIFICATION ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border-radius:10px;padding:14px 18px;font-size:13px;z-index:999;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px;max-width:340px;transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none;border:1px solid var(--border);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-left:3px solid var(--resolved);}
+.toast.error{border-left:3px solid var(--open);}
+.toast.info{border-left:3px solid var(--accent);}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:48px 24px;color:var(--muted);}
+.empty-icon{font-size:42px;margin-bottom:12px;}
+.empty-text{font-size:14px;}
+
+/* ── SPINNER ── */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.page-loader{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--muted);gap:12px;font-size:14px;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;padding:0 30px;background:var(--surface);border-bottom:1px solid var(--border);}
+.tab{padding:11px 16px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .18s;user-select:none;}
+.tab:hover{color:var(--text2);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+.hidden{display:none!important;}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 44px 36px;width:400px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo img{width:160px;margin-bottom:12px;}
+.login-logo-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--accent);letter-spacing:.5px;}
+.login-logo-sub{font-size:10px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;margin-top:2px;}
+.login-field{margin-bottom:16px;}
+.login-field label{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px;}
+.login-field input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 13px;border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;}
+.login-field input:focus{border-color:var(--accent);}
+.login-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px;transition:opacity .2s;}
+.login-btn:hover{opacity:.88;}
+.login-err{color:var(--open);font-size:12px;text-align:center;margin-top:10px;min-height:16px;}
+/* ── THEME TOGGLE ── */
+.theme-toggle{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;flex-shrink:0;}
+.theme-toggle:hover{border-color:var(--accent);}
+/* ── DATE RANGE CARD ── */
+.date-range-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.dr-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;white-space:nowrap;}
+.dr-sep{font-size:12px;color:var(--muted);}
+.dr-active-badge{background:var(--accent-dim);color:var(--accent);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;display:none;}
+/* ── HIDE ADMIN NAV for non-admin ── */
+.admin-only{display:none;}
+</style>
+</head>
+<body>
+
+
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACYASwDASIAAhEBAxEB/8QAHQABAAIDAQEBAQAAAAAAAAAAAAYHBAUICQIDAf/EAFYQAAEDBAAEAwMIBQYICQ0AAAECAwQABQYRBxIhMQgTQRVRYQkUIlaRlsHUFjJxgaEjQqKxstEYJjdjcnWjsxckJzNDUlN0pCU0NjhiZWZzdpKUtOH/xAAWAQEBAQAAAAAAAAAAAAAAAAAAAQL/xAAeEQEBAQADAQEBAQEAAAAAAAAAAREhMUECQlESYf/aAAwDAQACEQMRAD8A7LpSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlApSlAqv7verwzx3sVgZnKTaZVilSn43IkhbqHW0pVvXMNBZ6AgH1qwKrG+K34mcaQnqU4zOKtegL7IB+0UFnVXfHO7Xi1WnG02W6v2tc/JYMCQ+ylCleS8spWBzpUAdEEHR0QKsSqp8SiIq8dxcT2EPQRlduVLS43zt+SFkrKwQRy6B3vprvQTjHLVIt8mQt7KrregtIAamGPpognqPKaQdn4k9ulb6olgr2ACTLYwtmxMuqShcoW2OhsqAJCSrkA3ok63vWz76ltBGOJVyuMHGXIljUhN7uaxBtpXvSHlgnnOvRCQtZ+CDX4cI8ndy3ALZdpiPKuSUGNcmSAC1LaJQ8kgdvppJA9xFap+B+mfESet2RcokDG0iJGXFfWwXJTqAt47GthKC0kddbUsVpsKhuYFxouuMJXMesuUR/a0J59Rc5JqNIkIKiNkrSEL2T6EUFuVWvGTJMsxu6Y/Nxi3qurSBJeuVuR/zkmMgN83le9xPNzAeuiOu9Gyqh2RuqTxSxJnlUUrh3EkgdAQGNAn031+w0GJkeXs3ngvdcvw26JVzWt6TCkoSCULSkkApIICgRogjoQQRU7HQa3VEcYsUveGRb/kWDRfnFkvjLjeQWZOwlC1pKfnrIHZQ2CsAaUBs9RsXxQKVh3diZKtsiPb5xgSloIakBoOeWffynof2Gtfi1uv1uZkJvuR+3FrUC2swkR/LAHUaQdHffZoN5VY4jd7zxFvN8mx7vJtON2y4OW6I3DCUvTHGiA46txQJCNkgBOj0JJParOqoOGDzHDafkGI5Q6m3Qnbu/cLRcZH0I0hh4hXll0/RDqFbBSogkEEAjrQWDj9muVquExx7JLhc4LqEeTGmIbKo6wTzFLiUhSgQU9FbIIOj10N9WosmRWe9yJLNomonJjhPO8ykrZ2d6AcA5VEa6gEkbG9bFbeggFsvV4d483rH3ZqlWhiwRZbUbkTpDq3XEqVvW+oSBonXwqf1UL17tli8R98k3mY3Bju43Dbbde2lClh90kA60SAR0q0bLc4F5tzdxtkpuVEdKg26jelaJB1v4gj91Bm1VnEXObvYc8s7sUIOMQZjUG/ukDaHJQIZOz0AbIbKjvs8ke/VhZHdY9jsM+8ywssQo633AgEqUEgnQHqTrQHvNV0xwwbyTh5Ni5Bcrqzcb+yuTcGm5iwy3IdHNoN9iEHkA2OoQKC1u9D2qC8DshuN/wCHsM3tp1q921a7bc0uAgl9k8il7IG+cAL2On0qnVBAuCl4u98xy6yrzOVLdZv0+KyooSnlZafUhCegG9Adz1PqTWzYn3JXFmXazKUba3YmJAY5RoPKfdSVb1vZSgDW9dO1Qjhbf7Zgz2R4nl8xmySG77MmQnpyvKZmRn3C6hbbitJURzEFIJII6ipbibvtvOLxk8VC/Za4MaBDeUkpEgtrecccSCNlG3UgHsSkkbGjQTSqwlSMguvHS6Y23k9zttpjWGNMbZiIY2XVvOIJJcbWdaQOgIqz6qRd4ttm8SV5fu8xmBHdxiI229IUG21LD7pKQo6BOiDre6D9Muu2T8Ob9j0yTf5N/wAbu1zatkxuey0JENx3YbdQtpCAUAjSgoE9eh69LXqo+Ie+Jl4xzHsfQ7ItEK7M3S6XPkIjhDJJSy2sjS1rURvl2AASSOlW5QV7x4u93suJ21+y3N22vyL5BiOPtJQpQbdeCFgBYKex7kHVSPHrTJgTX3Hctu95SpsJ8iX82KWzv9YeU0g7PUdSR8KhfiXQyvA7amUyl6L+kFuMlKm+dHlCQkrKho/R0DvfTVSTBnuHonymMMYsLEhbaVSRbYzbZUkEgFRQBsAqOt9tn30EvpSlApSlApSlArkG4+JJGN8S7+hXD72jdkS3LaZSruoLLbbqgltCS0QhJOzodyepJANdfV5sZ1F34kLzE10XljqAPgZR1/XUtX5dXOcWuMzzQci8BJ7Y9z1zBP2eWDUavPiZzDFZLSM04QXC1NOK0lxclbYV6nlKmtKIHoDXT3761mR2S15FZJdlvUJmbAltlt5l1OwQfUeoIPUEaIIBBBG6mUQrhDxlwvialbFjkvRrm0nndt8xIQ8E71zJ0SFp36gkjY2BsVYyyQgkDZAOq80o4m8NOPHkWyS6XbFfSw2vei62l0oIOvRaNgj1CiK9LvSrLpZjlLC/FXe8gzGyY2vDYDC7jcmIbjyZizyBxwIJCeXuASeprq6vNjg7F14h8cja6N5E30/0Xd/hXo9cJkW3wJE+a8hiNHbU684s6CEJBJJ+AAJpC/8AHzdbjAtNueuN0mMQojCSp199wIQgD1JPQVQWW+KXHmrp7GwTHrlls9auRstAtNrVvWkjlK1fuSAfQ1Q/FbiBlPHjiTExfHy6i0uyvJtkLZSlWt7fd950Co76JA0OuyevuDPCrGuGVhbiWyMh+5OIAmXBaR5ryu5AP81G+yR07b2etN3ozO1dQ8r8UV9AkQcDxuyxl9UJnLIcA+ILuwf2pH7K/lxyDxV2lovnEcSuraBtSYxJVr4Dzkkn4AE/CuiKUw1y1afFfJtN2Np4h4BPtMls6eMdZDiN+9l0JIHrvnPwFdA4BmuN53YxesXuKZ0QLLa/oKQptYAJQpKgCCAR8D3BIrB4o8OMW4j2FdsyGAlbgB+bzGwEvxlH1QrXbetg7B9Qax+B+CDhvw6h4uuS1KfZdddfkNoKQ8payQrR6g8vKNbPbuacip+Lfibk4DxDvGJHDG7h8wWgNyfaJa5wtpCwSjyz25td/SugsdmuXOwW65OsBhyXFbfU0FbCCtAVreuut63quAfGI3yeIfJNfz0xT/4ZofhXoDY2fm9kgx+3lR20fYkD8KQ8jNpSlVH8VvR1reum6ozgDx5lcUcymY65ijdpEOCuS4+mcXuZQcQgJCeROgecnue1XpXHXgSjgcUczeA6NRPLB92396/o1KLl8SXF6fwmasMiJY491buS30OJdfLRQUBBGiAe/Od7HoKz/DpxOm8VcWuN8l2hi2fNZ5iIbadLnMA2heySB1+nroPSqt+UJa3iuKv66onPp+1AP4VvvAQ1ycHLi5rq5fHj9jLI/CnOrnGt1e+N8bFePsrAsp+bxrO+wwYU/XL5Dq0AkOknXISdBXTlOt7BJF1DRGxXBPjUjPyOPM8RmXHSi2sOLDaSSEBBJUdegA2T6Abqf+EXjtr5pw8zKb06M2ic6rt6BhZP7ggn4J91T/XJnDrj91Kd6VpH8PYke7pVJ8AuOUnillVxsbmLotIt8QvOPCaXudYcCAAOROh1J7ntV2ntXJPgaiBviRxAcA/5nkaHw284df0KgtLxHcZpXCSRYks4+zdkXRL5JXKLJQWy30Gkne+f+FQSx+J7L7zCM218FrvcooUUF+HKddRzDWxtMcjY2Om/Wtd8oe0DBwt/1S7MT9oZP4VPfA80G+BLC/8AtLjJUf3ED8KnOrxmopO8UGVxNiRwWvEcjv50p1Gvtj1teEHiMuWecSbdiUrC0WhEwOkvKmKWpJQ0pYABbTsnl13ron99fJSCQSBsdulMv9H1SlK0hSlKBSlKAe1edebIA8V85Ouhy4fxkg/jXooe1ecXFFE53xN3pu1vNsz15MUxnXB9BDpfAQSNHYB0T0PQdjUvTXy9Ha0mZ5NZcQxyVf7/ADW4kKMgqUpRG1nXRCR6qJ6ADuTVLzcX8VTkdSW+IeJAkf8ARxwk/uJjGqezjB+LdpuByTijjE7iBb4p5yGrqsstAdSeRscyBobJCQAB1pqY03BvEbxxi46yMqdhONWYXZVznvKGkJBcK0sg9io9Bodhs1372FUDwC48cOr+IWJRLOjD5Z03EhHl+bOqPZCHAACon0UASSACSdVf3pSH086+ESAPFJaUa6DInP4LX/dXTPjgyl6xcIkWiK4UP3yWmMsjv5KQVr+0hAPwUa5o4Rf+tRav/qJ3+2urc+UPcc1hLWz5Z+eqI9NjyAP4E1mdNexrPk/8YZlZDkGWSGwpUFlESMT6KcJKyPiAgD9ijXZNc2/J/IQOGV+cGuc3kg+/QYaI/rNdJVqdM3spSlVClay+X6yWJLKr3eLfbEvqKGlS5KGQtQGyAVEbOuuhX1Zb1Z72y69ZrtBuTTTnluLiSEOpQvQPKSkkA6IOj76DgrxkJ5vERekj+c3EH+wQK9A2wEtJSOwAArz58W7we8SN9Ho2qIj7I7RP8Sa9CB+qKz89teR/aUpWmSuTfAk1/jpxCd1+othG/wBrrx/Cusq5Z8CCAb3xGeA0DLjAf/dINT1Z1Wb8oKkfoDjivddVD7Wlf3VvfAkNcEnD77vIP9BsfhWk+UE/yfY7/rU/7pdbzwJ/5EF/63kf2W6np+WkuUdqT47mGX20OtKsZC0KGwoGOsEEHoQQSNfGqn8U/A13BJzmVYxHW5jEhz+VaSCTb3CeiT/myToH0JAPoTbnMFePYD1TZdf7Df410TcIcW4wH4M6O1JiyG1NvMuoCkOII0UkHoQRsaNXNNxzX4S+PHt5qNgmZzP/ACugBu2znVf+dpA6NLJ/6UDsf54Gj9IbV07XAPiW4KzeGV7F/wAfD7mMyHgWHEklcFwnYbWrvrf6q97OtE7GzfPhU45t5tBaxLKZKUZNHb0w+sgC4ISOpH+cAGyPUdR6gSXyrZ7HQtcxeCdjkzHii7rtcmmx+5ySa6drnHwYpAyHief/AH6B9i3v76XuJOq0/wAoUN47iR9RMkD7UI/uqbeCM74DQh7p0kf06hXyhX/ozif/AHx/+wioh4fLZx/k8NWHuHl/ssKxGS6G2ZKGi4Fg6WdqaUdE9utPTx2pSuXplh8XigdZXaVf/J+ap/rZFT3w8W3jFAuF8PFWY7KbWhkQFfOGVoBBX5mg3ogkFHcelaMXJSlKIUpSgUpSgV52ZwR/hYzj/wDFyf4SRXonXm9nMkDxN3aTvojLVnf+jKI/Cs1r5ekNP20r5WpKUlSiAAOpPpWmXnj4ssXhYhxuuDNnaESNMaauDTTf0Q0pewoJ12HOlRAHQb0NACu4+D19kZNwtxu+zF88qZbmVvq/6zgSAs/vUCf31wt4lclRxA45XByxJVMZQtq3QvKHMXyj6O0+8FZVr3giu8OFtgcxbhzj+PPEF6BAaZeI7FwJBXr4cxNZnbV6jhLhEof4UtpPocid/itdX38oBZHZeBWG/NoKxbrgtlzQ/VQ8jez8NtpH7SK514PyR/hHY/I30cyJPX/SdI/GvQHiLi0HNcKuuL3HoxPYLfOBstrBBQsD1KVAEfEVJzD2Oa/k9762EZTjLjiQ6SzOZRvqRoocP7j5f211qa83MXuGS8CeMzbtxhqTLtrxZlsAkIlR1dDyk62FDSkkjoQCR0Ir0IwzJ7JmGORb/YJzcyDJSClaT1SfVCh3CgehB6g1qdH123dKUqsubPlAmgeGdheI6pvISD8Cy6fwFZPgCQBwiuyx3VfXQf3MMf31+XygCtcKrIn33xB+xh7++sjwCj/kbuf+vnv9wxWf01+XOni5bXH8ROTKII2uM4k+8GM0f69/ZXoTbpLcy3RpjR22+0hxB94UAR/XXGvj4xORDzS05ky0TDuMYRH1gHSX2ySNn0KkEaH+bNXl4TM8iZlwmt0NUhJu1kaRBmNEjmCUDTS9b2QpAHX1IUPSk4tL0uGlKVplj3CU1CgSJryglphpTiz6AJBJ/gK5m+T/AGnXbJmN0WnSZU9lG/eUpWoj/aD7anPi4z6LiPDCZZ2JAN6vrZhxWUq+mG1dHF6HUAJJAPvI+Nbjww4TIwThFbbbOa8q4yyqdMQRooccA0g/EICAfiDU9VW3ygp/5P8AHB77qf8AdKre+BM74IOD3XeQP6LdRv5Qh3WH4uzv9e4Oq+xsD8a3vgKc5+DE5Hq3fHx9rTJ/Gp6flookgL+UClo3+pbw3/4JCvxrqCuRbBLD3yg05W97U6z3/wCrA1r+jXXVWFYF9tVvvlolWm6xGpsGU2Wn2HU7StJ7j/8AvcHRHUVwDx/4T3rhDlzNztL8pVkefDlruCCQ4w4DzBtahrTidbBGuYDY6ggehtajLsftGVY7MsF9homW+Y2UOtq+0EHuFAgEEdQQCKWaS4qPwx8cYvES2IsF/daj5VFb+l2SmcgDq4gdgsDqpA/aBrYTpPBof8Y+KKfdfQftW/8A3Vzbxi4eZHwZz9kx5cpMfzfnFnujRKCoJIIBI6BxOwCPiCOhFXz4A5z9x/TybLWFyJMyM+6oADa1+eSdDoNnfQVN5i2cbH18oUf8W8THr88kf2EVN/BJ/kFgf99k/wBuoD8oa4BasOa31U/LVr9iWh+NT3wRnfAaEPdOkj+nV9Txd9Nj31H86kLjWIKMhcWOuSy3LfQopU0ypwBauYdUjR0VbHKCTsa2IHgaZkG92xK0vwpj6m0ORPLCEyWS06pbytJAJCggEkFaVIIJ5XBuotylKUClKUClKUCuD8x4E8YJ3Ei9ZBb8S81p+7vzI6lT4wC0l5S0kguAjYI6HRrvClSxZcUY3nXiGaQPnHBe3uq9S3emQPs5zUZzOB4meI0RdmdtVmwy0yByP8k5KnFoPcKWhS1aPuSBvseldM0phqj+BPh4x/h3Mavlzki939A/k3lN8rMYkdfLSdkq7jmJ3rsBV2r3yHXfXSvulVHDXDrw/wDFiy8ScdyCfj7LcWHd40qQoXBglLaXUqWdBezoA9B1ruWlKmYW6gHGDhTinE21pjX2MtqawCIs9jQeZ311sghSSe6SCOpI0etc7wuDHHXhLeXbhw4vLF3iLO3GmnEth5I7eaw6eQnWwClRI2dEbrselMXXN9t43cZLa2Gcl4F3iY+nop63tvoQfiB5bg/pVnp448TJw5LVwDyTzFdlSnHG0A/ElkD+IroGlMqOSeI2GeITjOmHByGxWPG7Sw/57TS5KeitEBSikrWSASNaA69quvw7cNZXC3BHsfl3Rq5PyJy5i3GmihCFKQhHINkkgcgOyB37dKl2WZRaMVjwX7u48hM+aiDGSywt1Tj7gJSgJQCdnlPX3699Y9qzWw3DIBj3mTId2UyX24s6E7HW62CAVIK0gLAJGwkkj1Aphvj988xSy5ti8zHcgi/OIUpOjo6W2ofqrQfRQPUH9x2CQeSbpwB4vcMsn/SDhndDcm29htyO4hqRyEglDjTh5FjoOgKgSAdDoB17l2RWnFbDIvl9lpiQI5QHHVAkJ5lBI6DqepFbYEEbHUGmLLjl+08b+OlsYDGQ8FrjcXkdC9FhyWQrXTZ0hYJ/ZofAVsF8V+PuSI+aY1wdds7znQSbmVhKB7x5gbGx8d/sNXTcs4scHJn8aUm5SbrHjIluMRYDrxS0okBW0JI6kEa3vpWbiWT2XKoL02yTFPtx31xpCFtLacYdTrmbcbWApChsbBAPUehqZf6inOF/Aq5nLUZ/xXvSciyMKDjEcfSYjqHUE7ACiD2AASD1G+hq/q01pyW0XTILxYYT613CzKZTObLSkhsuo50aJGlbSN9Cdeuqxrvl1rt92etTbM+4z47IfkR4MZTymUHfKV66AnR0N7OjoGtCo/GHw5zDiJBxuLidubm/MnZDknnkIaCOYNhP65G96V27araeEXBcq4f4JdbPlUBEKQ9dFSWQl9DoUgtNp3tBIHVB6HrVuWS5Q71Z4l2t61uRJbKXmVLbU2ShQ2CUqAIOj2IBrOqZzq7xjlnFOGnEKL4uHs+mY643YFXSYsSvnTJ/kltOtoVyBZXo7T01sb6gV1NSlJwhSlKoi/EvCrHn+JSscv8AH8yO8OZpxPRyO6AeVxBPZQ2fgQSDsEg1F4RuH+QcOcgzyx3yMvyw9E+aSw2Q1LQA99NBPQ9CNjZIJ0a6FFDUw1zj4zuHebZ+/iqMSsi7kiEmWZBEhpoIKy1yg86hvYQe2+1RXhZb/E1w6xROOWTALK/DS+t4KlyWVOArIJG0yANdPdXXFKZyu8Y5skZJ4s3kFH/B7jSEkdQHWjse7rJNf3hTH49xOIlq/SDDbJYMdcWU3BVtjw0FSAhRQCULUvXPy9vefjXSVKYaUpSqhSlKBSlKBUTulzz1q4Pt27ErNKiJVpl52+LaWse8oEdQSfhs/tqWUoIX7X4l/UiwfeJf5antfiX9SLB94l/lqmlKCF+1+Jf1IsH3iX+Wp7X4l/UiwfeJf5appSghftfiX9SLB94l/lqe1+Jf1IsH3iX+WqaUoIX7X4l/UiwfeJf5antfiX9SLB94l/lqmlKCF+1+Jf1IsH3iX+Wrb4zNyeU4+nILDb7YlIBZVFuSpRWeuwdtI5ddNd97PbXXe0oKs8RK3WoeDOMM+e8nM7cW2ucI51bc0NnoN9tmtkcZvt/4nWPML2xFtsWwR5KIMRp8vPOuPpCFrcIASkBI0ACrZOyR2rdZ9iTeWCxB2c5E9j3mNdkcjYV5qmSohB2egO+46jVSepgq7iZ5OU5J+icjH7ne7RDhuOXFuH5XR95CkNJJcWjqEF1fTZBLZ6aBrI8PV8m3LAk2S8h1F7xx9VpnoeADhLQAbWQCd8zZQd7IJ3onvUsxOwIsKbmsynJcm5XB2bIecSASVaCUAD0QhKED4JFYVtw1m3cSLrmUOc637WhtR5sIIHluuNEhD297CgglGu2qorLOMju2JccMmv8Aase9uCJicRcllEktOIbEh4laRyK59AbI2DodNnpU74PWeLHtdxyhq7Rro/lEoXN2RESUsaKAlCWweugkAEnRJ2SB2Gzi4ihjiZPzX58ta5lsat6opQOVIQsrCwre9nmI1r99fhgOEt4XPu7dquLnsOfIMmPalNjkguK6rDSt7CFHZ5NaBPTWzsNFw4CRxx4qkdy7at//AIlYuVWXPcTzu8ZxhUODkUK7tMe0rNIeLL/OyjkSuO5op6p7pUO46b30l+OYm1Zs1ynKETnHnMgVFUthSAAx5DRbGjvZ2Op3rWq+Jlkyz2tcZFty5lmFNKVJjy7b564pCAg+SsOIAB1vS0r0ST6kUGVw9yiBmeIW/Jba0+zHmIUfKeTyuNrSsoWhQ94UlQ+Otiv5kk7Los1Ddgx22XOMWwVOybqqMpK9naQkMr2NaO9juRrps5eI2GDjOOw7HbgsRoqCElw7WsklSlqPqSokk9OpNbeghftfiX9SLB94l/lqe1+Jf1IsH3iX+WqaUoIX7X4l/UiwfeJf5antfiX9SLB94l/lqmlKCF+1+Jf1IsH3iX+Wp7X4l/UiwfeJf5appSghftfiX9SLB94l/lqe1+Jf1IsH3iX+WqaUoIX7X4l/UiwfeJf5as2xXHNpFybavOL2iBCIPO/HvKpC0kAkaQWEA7Oh3Gu/XtUnpQKUpQKUpQKUpQKUpQKUpQKUpQKUrQZ9ksbEcXk3uSyt8NrbaaaQQC6644lttOz0AKlgEnsNn0oN/So9ZpuVLvAi3qzW1mGuOXEyoc5bnK4FAeUpCm0nqCSFA6PKQQOm/wAOKGXs4Rhk3IXIbs5ccfyUVo6W8rRJA6HskKUTroEk+lBKKVi2qfEulri3OC8l+JLZQ+w4nstCgCkj4EEGo9hGWLyS85RblW8RfYVzMAOedz+f/JpXz60OXosdNn9tBK6VHs7yq34jZkXGa2/IdfkNxYcVhILsp9Z0hpAJA2T6kgAAknQrCcuOftwDM/RmyuqCecwm7ssPa1spCy0EFfoASBv+cB1oJdStDhGUWzL8cZvdpLoZcUttxl5HI6w6hRStpxP81aSCCOvvBIIJ0/CXiJaeIdgVNhoXEnxilE6A6f5RhRG0nqAShY6pXrRHuIIATalaOz3tyfkt8tCogaRa1MJS95m/N8xsLPTQ1reu5336VvKBSoVlGdotNxvkWLbfnnsG3IuNyUZAbKWl+YUpbBB51kNLOiUjsCob6TJpYcbS4AQFgEbGj1949KD7pXytSUIUtR0kAkn3AVBcYy/I8ltNtyOz4/BesU99Ib8yeUSRHK+XzyjyynYH0uTm3r130oJ5Sodm+Wz7Fk+MWC32mPOkX96Qyhx+WWUMlpou7Om1kggEdANHVfGPZlMkZ9Lwi/Wdq3XVq3puTC4ssyGH45X5ZIUUIIUFaBSU+uwTQTSlQ3Lc+t+OZpjeNSmVqN6eLKpAOkR1FKvJCundxaFIA6dQfdUyoFKUoFKUoFKUoFKUoFKUoFKUoFKUoFKUoFKUoFaLN7HZMmxqVj+RIQu3z+VlSVL5CVcwKCk76KCgCNddgVva1uQWW1ZDa1228wkS4qlJXyKJBStJBSpKgQUqBAIIIIPY0FcYinLsL4m27CZ2SvZTYbnb5EiI9OQPn0EslA044kAOoV5gAURvfuA67S6+18n4gvps6rYqBjrZjuia2txDkt9AKgAkjqhogHf/AGyh6VLLJjdos0h2TBjumU6kIckyZDkh5SR1CS46pStAkkDetneqyrTa4FqRITAjpZEmSuS9oklx1Z2pRJ2dk/1UFb+H5+XZGr3wyuy0GdjEofNSkkpcgvbcYKSokkJ2tHrrkAJ3WXwYUDl/E0A9snP/AOswPwqb+wbR+kv6SiE2LuYvzMygSFljm5+Q9dEc3XqO9aqRw/xJ64Tbgq1LbkznfOlLZlvNecsgDmUELAJ0AN69KCI8ekmDkXDzJZh1aLXfwJy1fqM+cgtturPYJCyASegKh76tR11ttpTq1pS2kFRUToAAb2T7qx126Eu1+zHorb8Is+Qpl4eYlbetcqgrexrod7361oTw/wAWMQQlQZS4I0BBXcJCooA7J8gr8vl/9nl18KCI+HFtblpzG/NJUi2XrKp0+3kggOMEpSHR8FFBI946+taa34hcp3DzDOIGCONRMug2KIAhR0zdI/lIJjPdtg/zVH9U66juLqajsNRUxWWUNsIR5aW0DlSlIGgAB2AHTpX5We3QrPaotqtsdMeFEaSyw0kkhCEjQSN7OgABQQDgnlcTM5mT3uPDkwXjKYYlxJKCl2M+hhKVtKBA2QQRv1+HYWWe1YMK2W+HOmzokRtmROWlcpxCdF5SUhIUr3kAAb76AHoKzqDny7e1crho4z2WI3M+YSHYz1iSNGbbmH1hSXevV8LSXUA9B0GlE9bV4cZQrNIL+SQHWlWCTyptv0dOrCdhxa+v0dq2kJIBHJs99D9GuH+ItXSVcWbQGXZjxflNNSHUR33D3WtkKDa1HuSUkk9T1rZ4/jllsDk5dmt7UH5/IMmSlokIW6e6+Xego9NkAb0N70KDaOFKW1KcICQCST2AqkL/AGC6cJ40bI+H+QuvY09cWEPY1KIeYUmQ8lH/ABRf6zZ25zBIJB6nrrRu51tDramnEBbawUqSobBB6EH4Go5aMExa0uxlwbctKIiuaIy5KddZjHttppaihsgEgcgGgdDVBEOMKJTvFHhezClphyV3Cf5bymg4E6hr39Ekb2Onf1qV2LE4lnyCfltyuci5XiRGEdyXI5UIYjoJV5baEgBCNkqO9knqTW4udktVyudtuc6E2/Mtji3ITyidsqWnlURo+o6HdZN0hRrlbpFvmtebFktKZeRsjnQoaI2CCNgkdD60FMXrGcp4g4TfrvBdtTPt5xE21KebcElhDBBiFKgrSSSkOduhdUDvdWRwrylvNcBtORBHlPyWeWUzogsvoJQ6gg9RpYUBvrrR9akcSOzEitRY7aWmWUBttCRoJSAAAPgANVg2KxWiwpmptEFuGmbLcmSEtk6W8s7WvROgSQN60KDaUpSgUpSgUpSgUpSgUpSgbpulKBum6UoG6bpSgbpulKBum6UoG6bpSgbpulKBum6UoG6bpSgbpulKBum6UoG6bpSgbpulKBum6UoG6bpSgbpulKBum6UoG6bpSgbpse+lKD//2Q==" style="width:200px;max-width:80%;margin-bottom:18px;display:block;margin-left:auto;margin-right:auto;" alt="Jean-Claude Biguine">
+      <div class="login-logo-sub" style="margin-top:0;">Complaint Manager</div>
+    </div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="Enter username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In →</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div class="loading-bar" id="loading-bar"></div>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-brand">Jean-Claude Biguine</div>
+    <div class="logo-sub">Complaint Manager</div>
+  </div>
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" data-view="dashboard" onclick="gotoView('dashboard')">
+    <span class="nav-icon">📊</span> Dashboard
+  </div>
+  <div class="nav-section">Complaints</div>
+  <div class="nav-item" data-view="complaints" onclick="gotoView('complaints')">
+    <span class="nav-icon">📋</span> All Complaints
+    <span class="nav-badge" id="open-badge">0</span>
+  </div>
+  <div class="nav-item" data-view="new-complaint" onclick="gotoView('new-complaint')">
+    <span class="nav-icon">➕</span> Raise Complaint
+  </div>
+  <div class="nav-item" data-view="followup" onclick="gotoView('followup')">
+    <span class="nav-icon">🔁</span> Follow-Up
+  </div>
+  <div class="nav-section admin-only">Data</div>
+  <div class="nav-item admin-only" data-view="upload" onclick="gotoView('upload')">
+    <span class="nav-icon">📤</span> Bulk Upload
+  </div>
+  <div class="nav-section admin-only">Settings</div>
+  <div class="nav-item admin-only" data-view="admin" onclick="gotoView('admin')">
+    <span class="nav-icon">⚙️</span> Admin Panel
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="user-avatar" id="user-avatar">A</div>
+      <div>
+        <div class="user-name" id="user-name">Loading…</div>
+        <div class="user-role" id="user-role">Staff</div>
+      </div>
+      <button class="btn btn-ghost btn-xs" style="margin-top:10px;width:100%" onclick="doLogout()">🚪 Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="page-sub" id="page-sub">JCB & Spalon — All Branches</div>
+    </div>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle day/night">🌙</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="refreshData()">⟳ Refresh</button>
+      <button class="btn btn-primary btn-sm" onclick="gotoView('new-complaint')">+ New Complaint</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="dashboard" onclick="gotoView('dashboard')">Overview</div>
+    <div class="tab" data-tab="complaints" onclick="gotoView('complaints')">Complaints</div>
+    <div class="tab" data-tab="new-complaint" onclick="gotoView('new-complaint')">+ Raise</div>
+    <div class="tab" data-tab="followup" onclick="gotoView('followup')">Follow-Up</div>
+    <div class="tab admin-only" data-tab="upload" onclick="gotoView('upload')">Bulk Upload</div>
+    <div class="tab admin-only" data-tab="admin" onclick="gotoView('admin')">Admin</div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div id="view-dashboard">
+      <div class="date-range-bar">
+        <span class="dr-label">📅 Date Range</span>
+        <input class="filter-control" type="date" id="dr-from" onchange="applyDateRange()" style="width:140px;">
+        <span class="dr-sep">→</span>
+        <input class="filter-control" type="date" id="dr-to" onchange="applyDateRange()" style="width:140px;">
+        <button class="btn btn-ghost btn-xs" onclick="clearDateRange()">Clear</button>
+        <span class="dr-active-badge" id="dr-active-badge">Filtered</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="dr-showing"></span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card stat-total"><div class="stat-label">Total Complaints</div><div class="stat-value" id="stat-total">—</div><div class="stat-change" id="stat-total-sub">Loading…</div></div>
+        <div class="stat-card stat-open"><div class="stat-label">Open</div><div class="stat-value" id="stat-open">—</div><div class="stat-change">Needs attention</div></div>
+        <div class="stat-card stat-pending"><div class="stat-label">Pending Follow-Up</div><div class="stat-value" id="stat-pending">—</div><div class="stat-change">In progress</div></div>
+        <div class="stat-card stat-resolved"><div class="stat-label">Resolved</div><div class="stat-value" id="stat-resolved">—</div><div class="stat-change">Closed</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-title">Complaints by Category</div>
+          <div id="cat-chart"><div class="page-loader"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Status Breakdown</div>
+          <div id="status-chart"><div class="page-loader"><div class="spinner"></div></div></div>
+          <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+            <div class="card-title" style="margin-bottom:10px">By Branch</div>
+            <div id="salon-chart"></div>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Recent Complaints</div>
+          <button class="btn btn-ghost btn-xs" onclick="gotoView('complaints')">View All →</button>
+        </div>
+        <div class="table-scroll">
+          <table><thead><tr>
+            <th>#</th><th>Client</th><th>Brand</th><th>Salon</th><th>Category</th><th>Subject</th><th>Status</th><th>Date</th>
+          </tr></thead>
+          <tbody id="recent-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ALL COMPLAINTS ══ -->
+    <div id="view-complaints" class="hidden">
+      <div class="filters-bar">
+        <div class="filter-group"><span class="filter-label">Brand</span>
+          <select class="filter-control" id="f-brand" onchange="applyFilters()"><option value="">All Brands</option></select>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="filter-group"><span class="filter-label">Salon</span>
+          <select class="filter-control" id="f-salon" onchange="applyFilters()"><option value="">All Salons</option></select>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="filter-group"><span class="filter-label">Status</span>
+          <select class="filter-control" id="f-status" onchange="applyFilters()">
+            <option value="">All</option>
+            <option>Open</option><option>Pending Follow Up</option><option>Resolved</option>
+          </select>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="filter-group"><span class="filter-label">Category</span>
+          <select class="filter-control" id="f-cat" onchange="applyFilters()"><option value="">All</option></select>
+        </div>
+        <div class="filter-divider"></div>
+        <input class="filter-control filter-search" id="f-search" placeholder="🔍 Search client / summary…" oninput="applyFilters()">
+        <button class="btn btn-ghost btn-xs" onclick="clearFilters()">Clear</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">All Complaints</div>
+          <div class="table-meta" id="complaints-count">Loading…</div>
+        </div>
+        <div class="table-scroll">
+          <table><thead><tr>
+            <th>#</th><th>Date</th><th>Client</th><th>Brand</th><th>Salon</th><th>Manager</th>
+            <th>Category</th><th>Subject</th><th>Status</th><th>Summary</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="complaints-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ NEW COMPLAINT ══ -->
+    <div id="view-new-complaint" class="hidden">
+      <div class="card" style="max-width:700px">
+        <div class="card-title" style="font-size:16px;font-family:'Playfair Display',serif;color:var(--accent)">Raise New Complaint</div>
+        <div class="form-grid" id="new-form">
+          <div class="form-group">
+            <label class="form-label">Brand <span>*</span></label>
+            <select class="form-control" id="nf-brand"><option value="">Select Brand</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Salon Name <span>*</span></label>
+            <select class="form-control" id="nf-salon"><option value="">Select Salon</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Area Manager <span>*</span></label>
+            <select class="form-control" id="nf-manager"><option value="">Select Manager</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Client Name <span>*</span></label>
+            <input class="form-control" id="nf-client" placeholder="Enter client name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date <span>*</span></label>
+            <input class="form-control" id="nf-date" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mail Subject <span>*</span></label>
+            <select class="form-control" id="nf-subject"><option value="">Select Subject</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category <span>*</span></label>
+            <select class="form-control" id="nf-category"><option value="">Select Category</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" id="nf-status">
+              <option>Open</option><option>Pending Follow Up</option><option>Resolved</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Complaint Summary <span>*</span></label>
+            <textarea class="form-control" id="nf-summary" placeholder="Describe the complaint in detail…" rows="4"></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Initial Remark / Action Taken</label>
+            <textarea class="form-control" id="nf-remark" placeholder="Any immediate action taken or notes…" rows="2"></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Submitted By</label>
+            <input class="form-control" id="nf-submitted-by" placeholder="Your name">
+          </div>
+        </div>
+        <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-ghost" onclick="resetNewForm()">Clear</button>
+          <button class="btn btn-primary" id="submit-btn" onclick="submitComplaint()">Submit Complaint →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ FOLLOW-UP ══ -->
+    <div id="view-followup" class="hidden">
+      <div class="followup-layout">
+        <div class="followup-list-wrap">
+          <div class="followup-list-header">Open / Pending Cases <span id="fu-count" style="color:var(--muted);font-size:12px"></span></div>
+          <div class="filter-group" style="padding:10px 12px;border-bottom:1px solid var(--border);">
+            <input class="filter-control" style="width:100%" placeholder="🔍 Search…" oninput="filterFollowup(this.value)">
+          </div>
+          <div class="followup-list-scroll" id="fu-list"></div>
+        </div>
+        <div class="detail-card" id="fu-detail">
+          <div class="empty-state"><div class="empty-icon">👈</div><div class="empty-text">Select a complaint from the left to view details and add follow-up remarks.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ BULK UPLOAD ══ -->
+    <div id="view-upload" class="hidden">
+      <div style="max-width:800px">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="font-size:15px;color:var(--accent)">📤 Bulk Upload Existing Complaints</div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6">Upload a CSV file of your existing complaints. The system will map your columns and import all records into Google Sheets. Download the template below to see the expected format.</p>
+          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="downloadTemplate()">⬇ Download CSV Template</button>
+            <button class="btn btn-ghost btn-sm" onclick="downloadSampleData()">📋 Download Sample Data</button>
+          </div>
+          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="handleDrop(event)">
+            <div class="upload-icon">📂</div>
+            <div class="upload-title">Click to browse or drag & drop your CSV</div>
+            <div class="upload-sub">Supports .csv files · Max 5MB · UTF-8 encoding</div>
+          </div>
+          <input type="file" id="csv-input" accept=".csv" class="hidden" onchange="handleFileSelect(event)">
+        </div>
+
+        <div id="upload-preview-section" class="hidden">
+          <div class="card">
+            <div class="card-title">Column Mapping <span style="font-size:11px;color:var(--muted);font-weight:400">Map your CSV columns to the system fields</span></div>
+            <div class="field-map" id="field-map"></div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
+              <strong style="color:var(--text2)">Preview</strong> — First 5 rows of your file:
+            </div>
+            <div class="preview-table-wrap">
+              <table id="preview-table"><thead id="preview-thead"></thead><tbody id="preview-tbody"></tbody></table>
+            </div>
+            <div style="margin-top:16px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+              <div style="font-size:13px;color:var(--muted)" id="upload-row-count"></div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-ghost btn-sm" onclick="resetUpload()">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="upload-btn" onclick="doUpload()">Upload All Rows →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ADMIN ══ -->
+    <div id="view-admin" class="hidden">
+      <div class="admin-grid" id="admin-grid">
+        <div class="page-loader" style="grid-column:1/-1"><div class="spinner"></div> Loading config…</div>
+      </div>
+      <!-- Email Settings Card -->
+      <div class="card" id="email-settings-card" style="margin-top:18px;display:none;">
+        <div class="admin-card-title" style="font-size:14px;margin-bottom:18px;">
+          📧 Email Notification Settings
+          <span style="font-size:11px;color:var(--muted);font-weight:400">Auto-sent on new complaints &amp; follow-ups</span>
+        </div>
+        <div style="margin-bottom:20px;">
+          <div class="form-label" style="margin-bottom:6px;">Default CC Email <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(receives every notification)</span></div>
+          <div style="display:flex;gap:8px;max-width:440px;">
+            <input class="form-control" id="default-cc-input" placeholder="e.g. director@jcbspalon.com" type="email">
+            <button class="btn btn-primary btn-sm" onclick="saveEmailConfig()">Save All</button>
+          </div>
+        </div>
+        <div class="form-label" style="margin-bottom:10px;">Area Manager → Email Map <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(each AM receives their own complaints)</span></div>
+        <div id="manager-email-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+        <div style="font-size:12px;color:var(--muted);padding:10px 14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);line-height:1.6">
+          💡 Manager names must match exactly what is in the <strong style="color:var(--text2)">Managers</strong> dropdown above. Emails are sent from the Google account that deployed the Apps Script.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ═══════════════ FOLLOW-UP QUICK-EDIT MODAL ═══════════════ -->
+<div class="overlay" id="quick-edit-overlay">
+  <div class="modal" style="width:500px">
+    <div class="modal-title" id="qe-title">Update Complaint</div>
+    <div class="modal-sub" id="qe-sub"></div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Update Status</label>
+        <select class="form-control" id="qe-status">
+          <option>Open</option><option>Pending Follow Up</option><option>Resolved</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Add Remark / Follow-Up Note</label>
+        <textarea class="form-control" id="qe-remark" rows="4" placeholder="Describe what action was taken or next steps…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Updated By</label>
+        <input class="form-control" id="qe-updated-by" placeholder="Your name">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveQuickEdit()">Save Update →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toast-text"></span></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG — Replace with your deployed Apps Script URL
+// ═══════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbxaOjmCHAy25DPh2AC_m4r3XvKhju4awnigTKICYKFfBb-kmI8kN5BLQZL13G6kbWjsTw/exec';
+// Example: 'https://script.google.com/macros/s/AKfycb.../exec'
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let allComplaints = [];
+let dashboardComplaints = []; // date-filtered subset for dashboard
+let config = { brands:[], salons:[], managers:[], subjects:[], categories:[] };
+let currentView = 'dashboard';
+let selectedFuId = null;
+let csvParsed = [];
+let csvHeaders = [];
+let isAdmin = false;
+
+// ═══════════════════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════════════════
+const CREDS = { username:'Jcbounce', password:'Jcb$2026#' };
+
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  if (u === CREDS.username && p === CREDS.password) {
+    isAdmin = true;
+    err.textContent = '';
+    document.getElementById('login-screen').style.display = 'none';
+    // Show admin-only nav items
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+    document.getElementById('user-role').textContent = 'Admin';
+    localStorage.setItem('jcb_user', u);
+    init();
+  } else {
+    err.textContent = '❌ Invalid username or password';
+    document.getElementById('login-pass').value = '';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('jcb_user');
+  isAdmin = false;
+  document.querySelectorAll('.admin-only').forEach(el => el.style.removeProperty('display'));
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-err').textContent = '';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ═══════════════════════════════════════════════
+//  THEME TOGGLE
+// ═══════════════════════════════════════════════
+function toggleTheme() {
+  const isNight = document.body.classList.toggle('night-theme');
+  document.getElementById('theme-toggle-btn').textContent = isNight ? '☀️' : '🌙';
+  localStorage.setItem('jcb_theme', isNight ? 'night' : 'day');
+}
+function applyStoredTheme() {
+  const t = localStorage.getItem('jcb_theme') || 'day';
+  if (t === 'night') {
+    document.body.classList.add('night-theme');
+    document.getElementById('theme-toggle-btn').textContent = '☀️';
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  DATE RANGE FILTER (Dashboard)
+// ═══════════════════════════════════════════════
+function applyDateRange() {
+  const from = document.getElementById('dr-from').value;
+  const to   = document.getElementById('dr-to').value;
+  const badge = document.getElementById('dr-active-badge');
+  const showing = document.getElementById('dr-showing');
+  if (from || to) {
+    dashboardComplaints = allComplaints.filter(c => {
+      if (from && c.date < from) return false;
+      if (to   && c.date > to)   return false;
+      return true;
+    });
+    badge.style.display = 'inline-flex';
+    showing.textContent = `Showing ${dashboardComplaints.length} of ${allComplaints.length} complaints`;
+  } else {
+    dashboardComplaints = [...allComplaints];
+    badge.style.display = 'none';
+    showing.textContent = '';
+  }
+  renderDashboard();
+}
+
+function clearDateRange() {
+  document.getElementById('dr-from').value = '';
+  document.getElementById('dr-to').value   = '';
+  applyDateRange();
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+async function init() {
+  setUserInfo();
+  applyStoredTheme();
+  document.getElementById('nf-date').value = today();
+  await Promise.all([loadConfig(), loadData()]);
+  loadEmailConfig();
+  handleDeepLink();
+}
+
+// ═══════════════════════════════════════════════
+//  DEEP LINK — ?complaint=C-0012
+// ═══════════════════════════════════════════════
+function handleDeepLink() {
+  const params = new URLSearchParams(window.location.search);
+  const cid = params.get('complaint');
+  if (!cid) return;
+  // Navigate to follow-up and open the specific complaint
+  gotoView('followup');
+  // Wait a tick for the DOM to settle then select it
+  setTimeout(function() {
+    const found = allComplaints.find(c => c.id === cid);
+    if (found) {
+      selectFu(cid);
+      showToast('📌 Opened complaint ' + cid, 'info');
+    } else {
+      showToast('⚠️ Complaint ' + cid + ' not found', 'error');
+    }
+  }, 300);
+}
+
+function setUserInfo() {
+  const name = localStorage.getItem('jcb_user') || 'Admin';
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  document.getElementById('nf-submitted-by').value = name;
+  document.getElementById('qe-updated-by').value = name;
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// ═══════════════════════════════════════════════
+//  API CALLS
+// ═══════════════════════════════════════════════
+async function apiGet(action) {
+  const r = await fetch(`${API_URL}?action=${action}`, { redirect:'follow' });
+  return r.json();
+}
+
+async function apiPost(data) {
+  const r = await fetch(API_URL, {
+    method:'POST',
+    redirect:'follow',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(data)
+  });
+  return r.json();
+}
+
+// ═══════════════════════════════════════════════
+//  LOAD DATA
+// ═══════════════════════════════════════════════
+async function loadData() {
+  startLoader();
+  try {
+    const res = await apiGet('getAll');
+    if (res.success) {
+      allComplaints = res.data;
+      applyDateRange();
+      renderComplaintsTable(allComplaints);
+      renderFollowupList(allComplaints);
+      updateOpenBadge();
+    } else {
+      showToast('Error loading data: ' + (res.error||'Unknown'), 'error');
+    }
+  } catch(e) {
+    // Offline / not configured — show sample data
+    allComplaints = getSampleData();
+    applyDateRange();
+    renderComplaintsTable(allComplaints);
+    renderFollowupList(allComplaints);
+    updateOpenBadge();
+    showToast('⚠️ Using demo data — configure API_URL in settings', 'info');
+  }
+  stopLoader();
+}
+
+async function loadConfig() {
+  try {
+    const res = await apiGet('getConfig');
+    if (res.success) {
+      config = res;
+      populateDropdowns();
+      renderAdminPanel();
+    }
+  } catch(e) {
+    config = {
+      brands:['JCB','Spalon'],
+      salons:['Aundh','Bandra Pali'],
+      managers:['Puneeth','Nikita'],
+      subjects:['CEO Mail','Negative Review','CEO/Negative','Incident Report'],
+      categories:['Haircut','Styling','Color','Hair Spa','Facial','Waxing','Threading','Mani-Pedi','Nails','Other Service','Desk Employee','Price Concern','Discount','Infrastructure','Hygiene']
+    };
+    populateDropdowns();
+    renderAdminPanel();
+  }
+}
+
+function refreshData() { loadData(); showToast('Refreshing data…', 'info'); }
+
+// ═══════════════════════════════════════════════
+//  POPULATE DROPDOWNS
+// ═══════════════════════════════════════════════
+function populateDropdowns() {
+  function fill(id, arr, prefix='') {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = `<option value="">${prefix || 'Select'}</option>` +
+      arr.map(v=>`<option value="${v}">${v}</option>`).join('');
+    if (cur) el.value = cur;
+  }
+  fill('nf-brand', config.brands, 'Select Brand');
+  fill('nf-salon', config.salons, 'Select Salon');
+  fill('nf-manager', config.managers, 'Select Manager');
+  fill('nf-subject', config.subjects, 'Select Subject');
+  fill('nf-category', config.categories, 'Select Category');
+  fill('f-brand', config.brands, 'All Brands');
+  fill('f-salon', config.salons, 'All Salons');
+  fill('f-cat', config.categories, 'All');
+}
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard() {
+  const data = dashboardComplaints.length > 0 || document.getElementById('dr-from').value || document.getElementById('dr-to').value
+    ? dashboardComplaints : allComplaints;
+  const total    = data.length;
+  const open     = data.filter(c=>c.status==='Open').length;
+  const pending  = data.filter(c=>c.status==='Pending Follow Up').length;
+  const resolved = data.filter(c=>c.status==='Resolved').length;
+
+  document.getElementById('stat-total').textContent   = total;
+  document.getElementById('stat-open').textContent    = open;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-resolved').textContent= resolved;
+  document.getElementById('stat-total-sub').textContent = total + ' total records';
+
+  // Category chart
+  const catMap = {};
+  data.forEach(c=>{ catMap[c.category]=(catMap[c.category]||0)+1; });
+  const sorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxCat = sorted[0]?.[1] || 1;
+  document.getElementById('cat-chart').innerHTML = sorted.length ? sorted.map(([k,v])=>`
+    <div class="bar-row">
+      <div class="bar-label">${k||'—'}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxCat*100).toFixed(0)}%"></div></div>
+      <div class="bar-val">${v}</div>
+    </div>`).join('') : '<div class="empty-state" style="padding:20px">No data</div>';
+
+  // Donut
+  const pOpen = total ? (open/total*100).toFixed(0) : 0;
+  const pPend = total ? (pending/total*100).toFixed(0) : 0;
+  const pRes  = total ? (resolved/total*100).toFixed(0) : 0;
+  const cOpen = pOpen, cPend = parseInt(pOpen)+parseInt(pPend), cRes = 100;
+  document.getElementById('status-chart').innerHTML = `
+    <div class="donut-wrap">
+      <div class="donut" style="background:conic-gradient(var(--open) 0% ${cOpen}%, var(--pending) ${cOpen}% ${cPend}%, var(--resolved) ${cPend}% 100%)"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--open)"></div><span style="color:var(--muted)">Open</span> <strong style="margin-left:4px">${pOpen}%</strong></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--pending)"></div><span style="color:var(--muted)">Pending</span> <strong style="margin-left:4px">${pPend}%</strong></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--resolved)"></div><span style="color:var(--muted)">Resolved</span> <strong style="margin-left:4px">${pRes}%</strong></div>
+      </div>
+    </div>`;
+
+  // Salon chart
+  const salonMap = {};
+  data.forEach(c=>{ salonMap[c.salon]=(salonMap[c.salon]||0)+1; });
+  const salonSorted = Object.entries(salonMap).sort((a,b)=>b[1]-a[1]);
+  const maxSalon = salonSorted[0]?.[1] || 1;
+  document.getElementById('salon-chart').innerHTML = salonSorted.map(([k,v])=>`
+    <div class="bar-row">
+      <div class="bar-label">${k||'—'}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/maxSalon*100).toFixed(0)}%"></div></div>
+      <div class="bar-val">${v}</div>
+    </div>`).join('');
+
+  // Recent table
+  const recent = [...data].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  document.getElementById('recent-tbody').innerHTML = recent.length ? recent.map(c=>`
+    <tr>
+      <td class="td-id">${c.id}</td>
+      <td class="td-client">${c.client}</td>
+      <td><span class="brand-tag">${c.brand}</span></td>
+      <td class="td-muted">${c.salon}</td>
+      <td><span class="cat-tag">${c.category}</span></td>
+      <td class="td-muted">${c.subject}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td class="td-muted">${c.date}</td>
+    </tr>`).join('') : '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No complaints yet</div></div></td></tr>';
+}
+
+// ═══════════════════════════════════════════════
+//  COMPLAINTS TABLE
+// ═══════════════════════════════════════════════
+function renderComplaintsTable(data) {
+  document.getElementById('complaints-count').textContent = data.length + ' records';
+  document.getElementById('complaints-tbody').innerHTML = data.length ? data.map(c=>`
+    <tr>
+      <td class="td-id">${c.id}</td>
+      <td class="td-muted">${c.date}</td>
+      <td class="td-client">${c.client}</td>
+      <td><span class="brand-tag">${c.brand}</span></td>
+      <td class="td-muted">${c.salon}</td>
+      <td class="td-muted">${c.manager}</td>
+      <td><span class="cat-tag">${c.category}</span></td>
+      <td class="td-muted">${c.subject}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td class="td-summary" title="${esc(c.summary)}">${esc(c.summary)}</td>
+      <td>
+        <button class="btn btn-ghost btn-xs" onclick="openQuickEdit('${c.id}')">Follow Up</button>
+        <button class="btn btn-ghost btn-xs" onclick="viewDetail('${c.id}')">View</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No complaints found</div></div></td></tr>';
+}
+
+function applyFilters() {
+  const brand  = document.getElementById('f-brand').value;
+  const salon  = document.getElementById('f-salon').value;
+  const status = document.getElementById('f-status').value;
+  const cat    = document.getElementById('f-cat').value;
+  const q      = document.getElementById('f-search').value.toLowerCase();
+  const filtered = allComplaints.filter(c=>
+    (!brand  || c.brand===brand) &&
+    (!salon  || c.salon===salon) &&
+    (!status || c.status===status) &&
+    (!cat    || c.category===cat) &&
+    (!q || c.client.toLowerCase().includes(q) || c.summary.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
+  );
+  renderComplaintsTable(filtered);
+}
+function clearFilters() {
+  ['f-brand','f-salon','f-status','f-cat'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-search').value='';
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════
+//  FOLLOW-UP
+// ═══════════════════════════════════════════════
+function renderFollowupList(data) {
+  const open = data.filter(c=>c.status!=='Resolved');
+  document.getElementById('fu-count').textContent = `(${open.length})`;
+  document.getElementById('fu-list').innerHTML = open.length ? open.map(c=>`
+    <div class="fu-item ${selectedFuId===c.id?'selected':''}" onclick="selectFu('${c.id}')">
+      <div class="fu-item-id">${c.id}</div>
+      <div class="fu-item-client">${c.client}</div>
+      <div class="fu-item-meta">${c.salon} · <span style="color:${c.status==='Open'?'var(--open)':'var(--pending)'}">${c.status}</span></div>
+    </div>`).join('') : '<div class="empty-state" style="padding:30px"><div class="empty-icon">✅</div><div class="empty-text">No open complaints!</div></div>';
+}
+
+function filterFollowup(q) {
+  q = q.toLowerCase();
+  const filtered = allComplaints.filter(c=>c.status!=='Resolved' && (c.client.toLowerCase().includes(q)||c.id.toLowerCase().includes(q)));
+  document.getElementById('fu-list').innerHTML = filtered.map(c=>`
+    <div class="fu-item ${selectedFuId===c.id?'selected':''}" onclick="selectFu('${c.id}')">
+      <div class="fu-item-id">${c.id}</div>
+      <div class="fu-item-client">${c.client}</div>
+      <div class="fu-item-meta">${c.salon} · <span style="color:${c.status==='Open'?'var(--open)':'var(--pending)'}">${c.status}</span></div>
+    </div>`).join('');
+}
+
+function selectFu(id) {
+  selectedFuId = id;
+  renderFollowupList(allComplaints);
+  const c = allComplaints.find(x=>x.id===id);
+  if (!c) return;
+  const remarks = (c.remarks||'').split('\n').filter(Boolean);
+  document.getElementById('fu-detail').innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div class="detail-id">${c.id} · ${c.date}</div>
+        <div class="detail-client">${c.client}</div>
+        <div style="margin-top:6px">${statusBadge(c.status)}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openQuickEdit('${c.id}')">+ Add Remark</button>
+    </div>
+    <div class="detail-meta-grid">
+      <div class="detail-meta-item"><div class="dm-label">Brand</div><div class="dm-value"><span class="brand-tag">${c.brand}</span></div></div>
+      <div class="detail-meta-item"><div class="dm-label">Salon</div><div class="dm-value">${c.salon}</div></div>
+      <div class="detail-meta-item"><div class="dm-label">Manager</div><div class="dm-value">${c.manager}</div></div>
+      <div class="detail-meta-item"><div class="dm-label">Category</div><div class="dm-value"><span class="cat-tag">${c.category}</span></div></div>
+      <div class="detail-meta-item"><div class="dm-label">Subject</div><div class="dm-value">${c.subject}</div></div>
+      <div class="detail-meta-item"><div class="dm-label">Last Updated</div><div class="dm-value" style="font-size:12px;color:var(--muted)">${c.lastUpdated||'—'}</div></div>
+    </div>
+    <div class="form-label" style="margin-bottom:8px">Complaint Summary</div>
+    <div class="summary-box">${esc(c.summary)}</div>
+    <div class="form-label" style="margin-bottom:12px">Remarks Timeline</div>
+    <div class="timeline">
+      ${remarks.length ? remarks.map((r,i)=>`
+        <div class="tl-item">
+          <div class="tl-spine"><div class="tl-dot" style="background:${i===remarks.length-1?'var(--accent)':'var(--muted)'}"></div>${i<remarks.length-1?'<div class="tl-line"></div>':''}</div>
+          <div class="tl-body"><div class="tl-text">${esc(r)}</div></div>
+        </div>`).join('') : '<div style="color:var(--muted);font-size:13px;padding:8px 0">No remarks yet.</div>'}
+    </div>
+    <div class="remark-form">
+      <div class="remark-form-title">Add Follow-Up Remark</div>
+      <textarea class="form-control" id="inline-remark" rows="3" placeholder="Type your update…"></textarea>
+      <div style="display:flex;gap:10px;margin-top:10px;align-items:center">
+        <select class="form-control" id="inline-status" style="flex:1">
+          <option ${c.status==='Open'?'selected':''}>Open</option>
+          <option ${c.status==='Pending Follow Up'?'selected':''}>Pending Follow Up</option>
+          <option ${c.status==='Resolved'?'selected':''}>Resolved</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="saveInlineRemark('${c.id}')">Save Update</button>
+      </div>
+    </div>`;
+}
+
+async function saveInlineRemark(id) {
+  const remark = document.getElementById('inline-remark').value.trim();
+  const status = document.getElementById('inline-status').value;
+  if (!remark) { showToast('Please enter a remark', 'error'); return; }
+  const updatedBy = document.getElementById('user-name').textContent;
+  startLoader();
+  try {
+    await apiPost({ action:'addRemark', data:{ id, remark, status, updatedBy } });
+    const c = allComplaints.find(x=>x.id===id);
+    if (c) {
+      const ts = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      c.remarks = (c.remarks ? c.remarks+'\n' : '') + `[${ts} — ${updatedBy}]: ${remark}`;
+      c.status = status;
+    }
+    renderFollowupList(allComplaints);
+    selectFu(id);
+    showToast('Remark saved!', 'success');
+  } catch(e) { showToast('Error saving remark', 'error'); }
+  stopLoader();
+}
+
+function viewDetail(id) { gotoView('followup'); setTimeout(()=>selectFu(id),100); }
+
+// ═══════════════════════════════════════════════
+//  NEW COMPLAINT
+// ═══════════════════════════════════════════════
+async function submitComplaint() {
+  const fields = ['nf-brand','nf-salon','nf-manager','nf-client','nf-date','nf-subject','nf-category','nf-summary'];
+  const labels = ['Brand','Salon','Manager','Client Name','Date','Subject','Category','Summary'];
+  for (let i=0; i<fields.length; i++) {
+    if (!document.getElementById(fields[i]).value.trim()) {
+      showToast(`Please fill: ${labels[i]}`, 'error'); return;
+    }
+  }
+  const data = {
+    brand:       document.getElementById('nf-brand').value,
+    salon:       document.getElementById('nf-salon').value,
+    manager:     document.getElementById('nf-manager').value,
+    client:      document.getElementById('nf-client').value,
+    date:        document.getElementById('nf-date').value,
+    subject:     document.getElementById('nf-subject').value,
+    category:    document.getElementById('nf-category').value,
+    status:      document.getElementById('nf-status').value,
+    summary:     document.getElementById('nf-summary').value,
+    remarks:     document.getElementById('nf-remark').value,
+    submittedBy: document.getElementById('nf-submitted-by').value || 'Web Form',
+  };
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').innerHTML = '<div class="spinner"></div> Submitting…';
+  startLoader();
+  try {
+    const res = await apiPost({ action:'addComplaint', data });
+    if (res.success) {
+      data.id = res.id; data.lastUpdated = ''; data.remarks = data.remarks;
+      allComplaints.unshift(data);
+      updateOpenBadge();
+      showToast(`✅ Complaint ${res.id} submitted!`, 'success');
+      resetNewForm();
+      gotoView('complaints');
+    } else {
+      showToast('Error: ' + (res.error||'Unknown'), 'error');
+    }
+  } catch(e) { showToast('Network error — check API_URL', 'error'); }
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-btn').innerHTML = 'Submit Complaint →';
+  stopLoader();
+}
+
+function resetNewForm() {
+  ['nf-brand','nf-salon','nf-manager','nf-subject','nf-category'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  ['nf-client','nf-summary','nf-remark'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('nf-date').value = today();
+  document.getElementById('nf-status').value = 'Open';
+}
+
+// ═══════════════════════════════════════════════
+//  QUICK EDIT MODAL
+// ═══════════════════════════════════════════════
+function openQuickEdit(id) {
+  const c = allComplaints.find(x=>x.id===id);
+  if (!c) return;
+  document.getElementById('qe-title').textContent = `Follow-Up: ${c.client}`;
+  document.getElementById('qe-sub').textContent = `${c.id} · ${c.salon} · ${c.category}`;
+  document.getElementById('qe-status').value = c.status;
+  document.getElementById('qe-remark').value = '';
+  document.getElementById('qe-updated-by').value = document.getElementById('user-name').textContent;
+  document.getElementById('quick-edit-overlay').dataset.id = id;
+  document.getElementById('quick-edit-overlay').classList.add('open');
+}
+
+async function saveQuickEdit() {
+  const id = document.getElementById('quick-edit-overlay').dataset.id;
+  const remark = document.getElementById('qe-remark').value.trim();
+  const status = document.getElementById('qe-status').value;
+  const updatedBy = document.getElementById('qe-updated-by').value;
+  if (!remark) { showToast('Please enter a remark', 'error'); return; }
+  startLoader();
+  try {
+    await apiPost({ action:'addRemark', data:{ id, remark, status, updatedBy } });
+    const c = allComplaints.find(x=>x.id===id);
+    if (c) {
+      const ts = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      c.remarks = (c.remarks ? c.remarks+'\n' : '') + `[${ts} — ${updatedBy}]: ${remark}`;
+      c.status = status;
+    }
+    closeModal();
+    renderDashboard();
+    renderComplaintsTable(allComplaints);
+    renderFollowupList(allComplaints);
+    if (selectedFuId===id) selectFu(id);
+    updateOpenBadge();
+    showToast('Updated successfully!', 'success');
+  } catch(e) { showToast('Error saving', 'error'); }
+  stopLoader();
+}
+
+function closeModal() {
+  document.getElementById('quick-edit-overlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+//  BULK UPLOAD
+// ═══════════════════════════════════════════════
+function dragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag'); }
+function dragLeave() { document.getElementById('upload-zone').classList.remove('drag'); }
+function handleDrop(e) { e.preventDefault(); dragLeave(); handleFile(e.dataTransfer.files[0]); }
+function handleFileSelect(e) { handleFile(e.target.files[0]); }
+
+function handleFile(file) {
+  if (!file || !file.name.endsWith('.csv')) { showToast('Please select a .csv file', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const lines = e.target.result.split('\n').filter(l=>l.trim());
+    csvHeaders = parseCSVLine(lines[0]);
+    csvParsed  = lines.slice(1).map(l=>parseCSVLine(l));
+    showUploadPreview();
+  };
+  reader.readAsText(file);
+}
+
+function parseCSVLine(line) {
+  const result=[]; let current=''; let inQuotes=false;
+  for (let i=0;i<line.length;i++) {
+    if (line[i]==='"') inQuotes=!inQuotes;
+    else if (line[i]===','&&!inQuotes) { result.push(current.trim()); current=''; }
+    else current+=line[i];
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function showUploadPreview() {
+  const fields = ['date','brand','salon','manager','client','subject','category','summary','status','remarks'];
+  const fieldLabels = ['Date','Brand','Salon','Manager','Client','Subject','Category','Summary','Status','Remarks'];
+  document.getElementById('field-map').innerHTML = fields.map((f,i)=>`
+    <div class="form-group">
+      <label class="form-label">${fieldLabels[i]}</label>
+      <select class="form-control" id="map-${f}">
+        <option value="">(skip)</option>
+        ${csvHeaders.map((h,j)=>`<option value="${j}" ${h.toLowerCase().includes(f)||h.toLowerCase().includes(fieldLabels[i].toLowerCase())?'selected':''}>${h}</option>`).join('')}
+      </select>
+    </div>`).join('');
+
+  document.getElementById('preview-thead').innerHTML = '<tr>'+csvHeaders.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+  document.getElementById('preview-tbody').innerHTML = csvParsed.slice(0,5).map(row=>'<tr>'+row.map(cell=>`<td style="font-size:12px;padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap">${cell}</td>`).join('')+'</tr>').join('');
+  document.getElementById('upload-row-count').textContent = `${csvParsed.length} rows ready to upload`;
+  document.getElementById('upload-preview-section').classList.remove('hidden');
+}
+
+async function doUpload() {
+  const fields = ['date','brand','salon','manager','client','subject','category','summary','status','remarks'];
+  const rows = csvParsed.map(row=>{
+    const obj={};
+    fields.forEach(f=>{
+      const sel = document.getElementById('map-'+f);
+      if (sel && sel.value!=='') obj[f] = row[parseInt(sel.value)] || '';
+    });
+    return obj;
+  }).filter(r=>r.client||r.summary);
+
+  if (!rows.length) { showToast('No valid rows found', 'error'); return; }
+  document.getElementById('upload-btn').disabled=true;
+  document.getElementById('upload-btn').innerHTML='<div class="spinner"></div> Uploading…';
+  startLoader();
+  try {
+    const res = await apiPost({ action:'bulkUpload', data:rows });
+    if (res.success) {
+      showToast(`✅ ${res.added} complaints uploaded!`, 'success');
+      resetUpload();
+      await loadData();
+    } else { showToast('Error: '+(res.error||'Unknown'),'error'); }
+  } catch(e) { showToast('Network error','error'); }
+  document.getElementById('upload-btn').disabled=false;
+  document.getElementById('upload-btn').innerHTML='Upload All Rows →';
+  stopLoader();
+}
+
+function resetUpload() {
+  document.getElementById('upload-preview-section').classList.add('hidden');
+  document.getElementById('csv-input').value='';
+  csvParsed=[]; csvHeaders=[];
+}
+
+function downloadTemplate() {
+  const headers = 'date,brand,salon,manager,client,subject,category,summary,status,remarks';
+  const blob = new Blob([headers+'\n'], {type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='complaint_template.csv'; a.click();
+}
+
+function downloadSampleData() {
+  const rows = [
+    'date,brand,salon,manager,client,subject,category,summary,status,remarks',
+    '2025-04-01,JCB,Aundh,Puneeth,Riya Mehta,Negative Review,Haircut,Client unhappy with haircut style,Resolved,"Called client, issue resolved"',
+    '2025-04-05,Spalon,Bandra Pali,Nikita,Priya Sharma,CEO Mail,Color,Uneven color during balayage,Pending Follow Up,Redo appointment scheduled'
+  ];
+  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sample_complaints.csv'; a.click();
+}
+
+// ═══════════════════════════════════════════════
+//  ADMIN PANEL
+// ═══════════════════════════════════════════════
+function renderAdminPanel() {
+  const sections = [
+    { key:'brands',     label:'Brands' },
+    { key:'salons',     label:'Salon Names' },
+    { key:'managers',   label:'Area Managers' },
+    { key:'subjects',   label:'Mail Subjects' },
+    { key:'categories', label:'Service Categories', wide:true }
+  ];
+  document.getElementById('admin-grid').innerHTML = sections.map(s=>`
+    <div class="admin-card ${s.wide?'wide':''}">
+      <div class="admin-card-title">${s.label}</div>
+      <div class="tag-list" id="tags-${s.key}">
+        ${(config[s.key]||[]).map(v=>`
+          <div class="tag-item">${v} <span class="tag-rm" onclick="removeTag('${s.key}','${v}')">×</span></div>
+        `).join('')}
+      </div>
+      <div class="tag-add-row">
+        <input id="add-input-${s.key}" placeholder="Add new ${s.label.toLowerCase().replace(/s$/,'')}…" onkeydown="if(event.key==='Enter')addTag('${s.key}')">
+        <button class="btn btn-primary btn-xs" onclick="addTag('${s.key}')">Add</button>
+      </div>
+    </div>`).join('');
+  // Render email settings panel below the grid
+  if (document.getElementById('email-settings-card').style.display !== 'none') renderEmailSettings();
+}
+
+async function addTag(key) {
+  const input = document.getElementById('add-input-'+key);
+  const val = input.value.trim();
+  if (!val) return;
+  if (config[key].includes(val)) { showToast('Already exists', 'error'); return; }
+  config[key].push(val);
+  input.value='';
+  renderAdminPanel();
+  populateDropdowns();
+  try { await apiPost({ action:'updateConfig', data:{ key, values:config[key] } }); showToast('Saved!', 'success'); }
+  catch(e) { showToast('Saved locally (API error)', 'info'); }
+}
+
+async function removeTag(key, val) {
+  config[key] = config[key].filter(v=>v!==val);
+  renderAdminPanel();
+  populateDropdowns();
+  try { await apiPost({ action:'updateConfig', data:{ key, values:config[key] } }); showToast('Removed!', 'success'); }
+  catch(e) {}
+}
+
+// ═══════════════════════════════════════════════
+//  EMAIL CONFIG
+// ═══════════════════════════════════════════════
+let emailConfig = { managerEmails: {}, defaultCC: '' };
+
+async function loadEmailConfig() {
+  try {
+    const res = await apiGet('getEmailConfig');
+    if (res.success) {
+      emailConfig = { managerEmails: res.managerEmails || {}, defaultCC: res.defaultCC || '' };
+      renderEmailSettings();
+    }
+  } catch(e) {}
+}
+
+function renderEmailSettings() {
+  const card = document.getElementById('email-settings-card');
+  if (card) card.style.display = '';
+  document.getElementById('default-cc-input').value = emailConfig.defaultCC || '';
+  // Build one row per manager in config
+  const list = document.getElementById('manager-email-list');
+  list.innerHTML = (config.managers || []).map(m => `
+    <div style="display:flex;align-items:center;gap:10px;max-width:560px;">
+      <div style="min-width:130px;font-size:13px;font-weight:600;color:var(--text2);">${m}</div>
+      <input class="form-control" id="em-${m.replace(/\s+/g,'_')}"
+        placeholder="email@example.com" type="email"
+        value="${emailConfig.managerEmails[m] || ''}"
+        style="flex:1;">
+    </div>`).join('');
+}
+
+async function saveEmailConfig() {
+  const defaultCC = document.getElementById('default-cc-input').value.trim();
+  const managerEmails = {};
+  (config.managers || []).forEach(m => {
+    const el = document.getElementById('em-'+m.replace(/\s+/g,'_'));
+    if (el && el.value.trim()) managerEmails[m] = el.value.trim();
+  });
+  emailConfig = { managerEmails, defaultCC };
+  try {
+    await apiPost({ action:'updateEmailConfig', data:{ managerEmails, defaultCC } });
+    showToast('✅ Email settings saved!', 'success');
+  } catch(e) { showToast('Error saving email config', 'error'); }
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════
+function exportCSV() {
+  function csvCell(v) {
+    const s = (v === null || v === undefined) ? '' : String(v);
+    // Always quote every cell to avoid any comma/newline corruption
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  const headers = ['ID','Date','Client','Brand','Salon','Manager','Category','Subject','Status','Summary','Remarks','Last Updated'];
+  const rows = allComplaints.map(c=>[
+    csvCell(c.id), csvCell(c.date), csvCell(c.client), csvCell(c.brand),
+    csvCell(c.salon), csvCell(c.manager), csvCell(c.category), csvCell(c.subject),
+    csvCell(c.status), csvCell(c.summary), csvCell(c.remarks), csvCell(c.lastUpdated)
+  ]);
+  const csv = [headers.map(csvCell).join(','), ...rows.map(r=>r.join(','))].join('\r\n');
+  // BOM prefix so Excel opens UTF-8 correctly without corruption
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`complaints_${today()}.csv`; a.click();
+  showToast('Exported!', 'success');
+}
+
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+function gotoView(view) {
+  const views = ['dashboard','complaints','new-complaint','followup','upload','admin'];
+  views.forEach(v=>document.getElementById('view-'+v).classList.add('hidden'));
+  document.getElementById('view-'+view).classList.remove('hidden');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const navEl = document.querySelector(`[data-view="${view}"]`);
+  const tabEl = document.querySelector(`[data-tab="${view}"]`);
+  if (navEl) navEl.classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+  currentView = view;
+  const titles = {
+    dashboard:    ['Dashboard Overview','JCB & Spalon — All Branches'],
+    complaints:   ['All Complaints','View, filter and manage all records'],
+    'new-complaint':['Raise New Complaint','Fill form to log a new complaint'],
+    followup:     ['Follow-Up Tracker','Update status and add remarks'],
+    upload:       ['Bulk Upload','Import existing complaint data via CSV'],
+    admin:        ['Admin Panel','Manage dropdown values and configuration']
+  };
+  const t = titles[view] || ['Dashboard',''];
+  document.getElementById('page-title').textContent = t[0];
+  document.getElementById('page-sub').textContent   = t[1];
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function statusBadge(s) {
+  if (s==='Open') return `<span class="badge badge-open"><span class="badge-dot"></span>Open</span>`;
+  if (s==='Pending Follow Up') return `<span class="badge badge-pending"><span class="badge-dot"></span>Pending</span>`;
+  return `<span class="badge badge-resolved"><span class="badge-dot"></span>Resolved</span>`;
+}
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function updateOpenBadge() {
+  const n = allComplaints.filter(c=>c.status==='Open').length;
+  document.getElementById('open-badge').textContent = n;
+}
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = msg;
+  t.className = `toast show ${type}`;
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>t.classList.remove('show'), 3500);
+}
+function startLoader() {
+  const b = document.getElementById('loading-bar');
+  b.style.width='60%'; b.style.transition='width .4s';
+}
+function stopLoader() {
+  const b = document.getElementById('loading-bar');
+  b.style.width='100%';
+  setTimeout(()=>{ b.style.transition='none'; b.style.width='0'; }, 400);
+}
+
+function getSampleData() {
+  return [
+    {id:'C-0001',date:'2025-04-01',client:'Riya Mehta',brand:'JCB',salon:'Aundh',manager:'Puneeth',category:'Haircut',subject:'Negative Review',status:'Resolved',summary:'Client unhappy with haircut style.',remarks:'[01-Apr-2025 — Puneeth]: Called client, offered redo. Issue resolved.',lastUpdated:'2025-04-03 10:00'},
+    {id:'C-0002',date:'2025-04-05',client:'Sneha Joshi',brand:'JCB',salon:'Aundh',manager:'Puneeth',category:'Hygiene',subject:'Incident Report',status:'Open',summary:'Unhygienic tools used during facial.',remarks:'',lastUpdated:''},
+    {id:'C-0003',date:'2025-04-08',client:'Priya Sharma',brand:'Spalon',salon:'Bandra Pali',manager:'Nikita',category:'Color',subject:'CEO Mail',status:'Pending Follow Up',summary:'Uneven color during balayage. Client requested redo.',remarks:'[10-Apr-2025 — Nikita]: Redo appointment scheduled for 15 Apr.',lastUpdated:'2025-04-10 14:30'},
+    {id:'C-0004',date:'2025-04-10',client:'Anita Kulkarni',brand:'JCB',salon:'Aundh',manager:'Puneeth',category:'Price Concern',subject:'CEO/Negative',status:'Open',summary:'Overcharged for waxing vs quoted price.',remarks:'',lastUpdated:''},
+    {id:'C-0005',date:'2025-04-12',client:'Deepa Nair',brand:'Spalon',salon:'Bandra Pali',manager:'Nikita',category:'Waxing',subject:'Negative Review',status:'Pending Follow Up',summary:'Rash after waxing. Allergic reaction reported.',remarks:'[13-Apr-2025 — Nikita]: Referred to dermatologist. Follow-up in 1 week.',lastUpdated:'2025-04-13 09:15'},
+    {id:'C-0006',date:'2025-04-14',client:'Kavya Reddy',brand:'JCB',salon:'Aundh',manager:'Puneeth',category:'Styling',subject:'CEO Mail',status:'Open',summary:'Stylist did not follow instructions for blowout.',remarks:'',lastUpdated:''},
+  ];
+}
+
+// ═══════════════════════════════════════════════
+//  CLOSE MODAL ON OUTSIDE CLICK
+// ═══════════════════════════════════════════════
+document.getElementById('quick-edit-overlay').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
+});
+
+// ═══════════════════════════════════════════════
+//  BOOT — show login, theme applied immediately
+// ═══════════════════════════════════════════════
+applyStoredTheme();
+// Focus username field
+document.getElementById('login-user').focus();
+</script>
+</body>
+</html>
